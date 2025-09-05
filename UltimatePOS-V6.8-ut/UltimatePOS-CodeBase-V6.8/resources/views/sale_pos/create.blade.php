@@ -212,17 +212,45 @@
         var items = [];
         $('table#pos_table tbody .product_row').each(function() {
             var row = $(this);
+            
+            // Get product name from the first td (product info)
+            var productName = row.find('td:first').text().trim();
+            // Remove the product image and clean up the name
+            productName = productName.replace(/\s+/g, ' ').trim();
+            
+            // Get quantity from pos_quantity input
+            var quantity = parseFloat(row.find('input.pos_quantity').val()) || 1;
+            
+            // Get unit price from pos_unit_price_inc_tax input (includes tax)
+            var unitPrice = parseFloat(row.find('input.pos_unit_price_inc_tax').val()) || 0;
+            
+            // Get line total from pos_line_total input
+            var lineTotal = parseFloat(row.find('input.pos_line_total').val()) || 0;
+            
+            console.log('BIR: Product data extracted:', {
+                name: productName,
+                quantity: quantity,
+                unit_price: unitPrice,
+                total: lineTotal
+            });
+            
             items.push({
-                name: row.find('.product_name').text().trim(),
-                quantity: parseFloat(row.find('.quantity').val()) || 1,
-                unit_price: parseFloat(row.find('.unit_price').val()) || 0,
-                total: parseFloat(row.find('.line_total').val()) || 0
+                name: productName,
+                quantity: quantity,
+                unit_price: unitPrice,
+                total: lineTotal
             });
         });
         
         var subtotal = parseFloat($('#subtotal').text().replace(/[^\d.-]/g, '')) || 0;
         var taxAmount = parseFloat($('#order_tax').text().replace(/[^\d.-]/g, '')) || 0;
         var totalAmount = parseFloat($('#total_payable').text().replace(/[^\d.-]/g, '')) || 0;
+        
+        console.log('BIR: Totals extracted:', {
+            subtotal: subtotal,
+            tax_amount: taxAmount,
+            total_amount: totalAmount
+        });
         
         return {
             items: items,
