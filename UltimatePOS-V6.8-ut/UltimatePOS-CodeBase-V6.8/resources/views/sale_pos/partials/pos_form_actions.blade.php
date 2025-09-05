@@ -80,6 +80,14 @@
                         </button>
                     @endif
                 @endif
+
+                <!-- BIR Receipt Button -->
+                <button type="button"
+                    class="tw-font-bold tw-text-gray-700 tw-cursor-pointer tw-text-xs md:tw-text-sm tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-1 no-print"
+                    id="bir-receipt-btn" title="Generate BIR Receipt"
+                    @if (!empty($only_payment)) disabled @endif>
+                    <i class="fas fa-receipt tw-text-[#28a745]" aria-hidden="true"></i> BIR Receipt
+                </button>
                 @if (!Gate::check('disable_card') || auth()->user()->can('superadmin') || auth()->user()->can('admin'))
                     <button type="button"
                         class="tw-font-bold tw-text-gray-700 tw-cursor-pointer tw-text-xs md:tw-text-sm tw-flex tw-flex-col tw-items-center tw-justify-center tw-gap-1  no-print @if (!empty($pos_settings['disable_suspend']))  @endif pos-express-finalize @if (!array_key_exists('card', $payment_types)) hide @endif @if ($is_mobile) col-xs-6 @endif"

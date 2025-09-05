@@ -1,0 +1,13 @@
+{
+    "name": "BIR Receipt Plugin",
+    "alias": "birreceiptplugin",
+    "description": "BIR-accredited receipt generation plugin with customizable templates",
+    "keywords": ["bir", "receipt", "pos", "philippines", "tax"],
+    "priority": 0,
+    "providers": [
+        "Modules\\BIRReceiptPlugin\\Providers\\BIRReceiptPluginServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

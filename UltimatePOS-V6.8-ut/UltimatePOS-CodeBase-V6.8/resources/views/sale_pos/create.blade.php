@@ -95,6 +95,7 @@
     @include('sale_pos.partials.recent_transactions_modal')
 
     @include('sale_pos.partials.weighing_scale_modal')
+    @include('sale_pos.partials.bir_receipt_modal')
 
 @stop
 @section('css')
@@ -128,4 +129,114 @@
             @endif
         @endforeach
     @endif
+
+    <!-- BIR Receipt Plugin Integration -->
+    <script src="{{ asset('Modules/BIRReceiptPlugin/Resources/js/integration.js') }}"></script>
+    
+    <!-- BIR Receipt Generation Function -->
+    <script>
+    // Define the BIR receipt generation function globally
+    window.generateBIRReceipt = function() {
+        console.log('BIR: generateBIRReceipt function called');
+        console.log('BIR: Template:', window.birReceiptTemplate);
+        
+        // Get transaction data
+        var transactionData = getBIRTransactionData();
+        console.log('BIR: Transaction data:', transactionData);
+        
+        // Prepare BIR receipt data
+        var birReceiptData = {
+            transaction_id: 'POS_' + Date.now(),
+            template_code: window.birReceiptTemplate,
+            format: 'html',
+            customer_name: transactionData.customer_name,
+            customer_phone: transactionData.customer_phone || '',
+            customer_address: transactionData.customer_address || '',
+            customer_tin: transactionData.customer_tin || '',
+            items: transactionData.items,
+            subtotal: transactionData.subtotal,
+            tax_amount: transactionData.tax_amount,
+            total_amount: transactionData.total_amount
+        };
+        
+        console.log('BIR: BIR Receipt Data prepared:', birReceiptData);
+        
+        // Generate BIR receipt
+        $.ajax({
+            url: '/bir-receipt/generate',
+            method: 'POST',
+            data: birReceiptData,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                console.log('BIR: Receipt generated successfully');
+                
+                // Close the payment modal
+                $('#modal_payment').modal('hide');
+                
+                // Open BIR receipt in new window for printing
+                var printWindow = window.open('', '_blank');
+                printWindow.document.write(response);
+                printWindow.document.close();
+                printWindow.focus();
+                
+                // Auto-print the receipt
+                setTimeout(function() {
+                    printWindow.print();
+                }, 500);
+                
+                // Show success message
+                toastr.success('BIR Receipt generated successfully!');
+                
+                // Clear the form and reset
+                setTimeout(function() {
+                    location.reload();
+                }, 2000);
+            },
+            error: function(xhr) {
+                console.error('BIR: Error generating receipt:', xhr);
+                toastr.error('Error generating BIR receipt. Using regular receipt.');
+                
+                // Fallback to regular receipt
+                $('#modal_payment').modal('hide');
+                if (typeof pos_form_obj !== 'undefined') {
+                    pos_form_obj.submit();
+                }
+            }
+        });
+    };
+    
+    // Function to get transaction data
+    function getBIRTransactionData() {
+        var items = [];
+        $('table#pos_table tbody .product_row').each(function() {
+            var row = $(this);
+            items.push({
+                name: row.find('.product_name').text().trim(),
+                quantity: parseFloat(row.find('.quantity').val()) || 1,
+                unit_price: parseFloat(row.find('.unit_price').val()) || 0,
+                total: parseFloat(row.find('.line_total').val()) || 0
+            });
+        });
+        
+        var subtotal = parseFloat($('#subtotal').text().replace(/[^\d.-]/g, '')) || 0;
+        var taxAmount = parseFloat($('#order_tax').text().replace(/[^\d.-]/g, '')) || 0;
+        var totalAmount = parseFloat($('#total_payable').text().replace(/[^\d.-]/g, '')) || 0;
+        
+        return {
+            items: items,
+            subtotal: subtotal,
+            tax_amount: taxAmount,
+            total_amount: totalAmount,
+            customer_name: $('#customer_id option:selected').text() || 'Walk-in Customer',
+            customer_phone: '',
+            customer_address: '',
+            customer_tin: ''
+        };
+    }
+    
+    console.log('BIR: generateBIRReceipt function defined globally');
+    </script>
+    
 @endsection

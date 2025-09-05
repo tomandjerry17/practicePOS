@@ -194,6 +194,30 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <!-- BIR Receipt Template Selection -->
+                <div class="row mb-3" style="width: 100%;">
+                    <div class="col-md-12">
+                        <div class="alert alert-info" style="margin-bottom: 10px;">
+                            <strong><i class="fas fa-receipt"></i> BIR Receipt Template:</strong>
+                            <span id="selected-bir-template">None selected</span>
+                        </div>
+                        <div class="btn-group" role="group" style="width: 100%;">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectBIRTemplate('A1')">
+                                <i class="fas fa-file-invoice"></i> A1 (OR)
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectBIRTemplate('A2')">
+                                <i class="fas fa-file-invoice"></i> A2 (SI)
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectBIRTemplate('A3')">
+                                <i class="fas fa-file-invoice"></i> A3 (CI)
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectBIRTemplate(null)">
+                                <i class="fas fa-times"></i> Skip BIR
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
                 <button type="button" class="tw-dw-btn tw-dw-btn-neutral tw-text-white" data-dismiss="modal">@lang('messages.close')</button>
                 <button type="submit" class="tw-dw-btn tw-dw-btn-primary tw-text-white" id="pos-save">@lang('sale.finalize_payment')</button>
             </div>
@@ -290,3 +314,158 @@
         </div>
     </div>
 </div>
+
+<script>
+// BIR Receipt Template Selection
+let selectedBIRTemplate = null;
+
+function selectBIRTemplate(templateCode) {
+    console.log('BIR Modal: selectBIRTemplate called with:', templateCode);
+    selectedBIRTemplate = templateCode;
+    
+    // Update visual feedback
+    $('.btn-group .btn').removeClass('btn-primary').addClass('btn-outline-primary');
+    $('.btn-group .btn').removeClass('btn-secondary').addClass('btn-outline-secondary');
+    
+    if (templateCode) {
+        // Highlight selected template button
+        event.target.classList.remove('btn-outline-primary');
+        event.target.classList.add('btn-primary');
+        
+        // Update display text
+        let templateNames = {
+            'A1': 'Official Receipt (OR)',
+            'A2': 'Sales Invoice (SI)', 
+            'A3': 'Cash Invoice (CI)'
+        };
+        $('#selected-bir-template').text(templateNames[templateCode]);
+        
+        // Store for later use
+        window.birReceiptTemplate = templateCode;
+        
+        console.log('BIR Modal: Template selected and stored:', templateCode);
+        console.log('BIR Modal: window.birReceiptTemplate =', window.birReceiptTemplate);
+    } else {
+        // Highlight skip button
+        event.target.classList.remove('btn-outline-secondary');
+        event.target.classList.add('btn-secondary');
+        
+        // Update display text
+        $('#selected-bir-template').text('Skipped - Using regular receipt');
+        
+        // Clear selection
+        window.birReceiptTemplate = null;
+        
+        console.log('BIR Modal: BIR Receipt skipped, window.birReceiptTemplate =', window.birReceiptTemplate);
+    }
+}
+
+// Initialize on modal show
+$('#modal_payment').on('show.bs.modal', function() {
+    // Reset selection when modal opens
+    selectedBIRTemplate = null;
+    window.birReceiptTemplate = null;
+    $('#selected-bir-template').text('None selected');
+    $('.btn-group .btn').removeClass('btn-primary').addClass('btn-outline-primary');
+    $('.btn-group .btn').removeClass('btn-secondary').addClass('btn-outline-secondary');
+});
+
+// Function to generate BIR receipt
+window.generateBIRReceipt = function() {
+    console.log('BIR Modal: generateBIRReceipt function called');
+    console.log('BIR Modal: Template:', window.birReceiptTemplate);
+    
+    // Get transaction data
+    var transactionData = getTransactionData();
+    console.log('BIR Modal: Transaction data:', transactionData);
+    
+    // Prepare BIR receipt data
+    var birReceiptData = {
+        transaction_id: 'POS_' + Date.now(),
+        template_code: window.birReceiptTemplate,
+        format: 'html',
+        customer_name: transactionData.customer_name,
+        customer_phone: transactionData.customer_phone || '',
+        customer_address: transactionData.customer_address || '',
+        customer_tin: transactionData.customer_tin || '',
+        items: transactionData.items,
+        subtotal: transactionData.subtotal,
+        tax_amount: transactionData.tax_amount,
+        total_amount: transactionData.total_amount
+    };
+    
+    console.log('BIR Modal: BIR Receipt Data prepared:', birReceiptData);
+    
+    // Generate BIR receipt
+    $.ajax({
+        url: '/bir-receipt/generate',
+        method: 'POST',
+        data: birReceiptData,
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        success: function(response) {
+            console.log('BIR Receipt generated successfully');
+            
+            // Close the payment modal
+            $('#modal_payment').modal('hide');
+            
+            // Open BIR receipt in new window for printing
+            var printWindow = window.open('', '_blank');
+            printWindow.document.write(response);
+            printWindow.document.close();
+            printWindow.focus();
+            
+            // Auto-print the receipt
+            setTimeout(function() {
+                printWindow.print();
+            }, 500);
+            
+            // Show success message
+            toastr.success('BIR Receipt generated successfully!');
+            
+            // Clear the form and reset
+            setTimeout(function() {
+                location.reload();
+            }, 2000);
+        },
+        error: function(xhr) {
+            console.error('Error generating BIR receipt:', xhr);
+            toastr.error('Error generating BIR receipt. Please try again.');
+            
+            // Fallback to regular receipt
+            $('#modal_payment').modal('hide');
+            pos_form_obj.submit();
+        }
+    });
+};
+
+// Function to get transaction data
+function getTransactionData() {
+    var items = [];
+    $('table#pos_table tbody .product_row').each(function() {
+        var row = $(this);
+        items.push({
+            name: row.find('.product_name').text().trim(),
+            quantity: parseFloat(row.find('.quantity').val()) || 1,
+            unit_price: parseFloat(row.find('.unit_price').val()) || 0,
+            total: parseFloat(row.find('.line_total').val()) || 0
+        });
+    });
+    
+    var subtotal = parseFloat($('#subtotal').text().replace(/[^\d.-]/g, '')) || 0;
+    var taxAmount = parseFloat($('#order_tax').text().replace(/[^\d.-]/g, '')) || 0;
+    var totalAmount = parseFloat($('#total_payable').text().replace(/[^\d.-]/g, '')) || 0;
+    
+    return {
+        items: items,
+        subtotal: subtotal,
+        tax_amount: taxAmount,
+        total_amount: totalAmount,
+        customer_name: $('#customer_id option:selected').text() || 'Walk-in Customer',
+        customer_phone: '',
+        customer_address: '',
+        customer_tin: ''
+    };
+}
+</script>

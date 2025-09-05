@@ -755,11 +755,35 @@ $(document).ready(function() {
             return false;
         }
 
-        // Close the payment modal
-        $('#modal_payment').modal('hide');
+        console.log('POS: Finalize payment button clicked');
+        console.log('POS: window.birReceiptTemplate =', window.birReceiptTemplate);
+        console.log('POS: typeof generateBIRReceipt =', typeof window.generateBIRReceipt);
         
-        // Submit the form
-        pos_form_obj.submit();
+        // Check if BIR template is selected
+        if (window.birReceiptTemplate) {
+            console.log('POS: BIR Template selected (' + window.birReceiptTemplate + '). Calling generateBIRReceipt()');
+            
+            // Check if function exists
+            if (typeof window.generateBIRReceipt === 'function') {
+                console.log('POS: generateBIRReceipt function found, calling it...');
+                window.generateBIRReceipt();
+            } else {
+                console.error('POS: generateBIRReceipt function not found!');
+                toastr.error('BIR Receipt function not available. Using regular receipt.');
+                
+                // Fallback to regular receipt
+                $('#modal_payment').modal('hide');
+                pos_form_obj.submit();
+            }
+        } else {
+            console.log('POS: No BIR template selected. Proceeding with regular receipt.');
+            
+            // Close the payment modal
+            $('#modal_payment').modal('hide');
+            
+            // Submit the form normally
+            pos_form_obj.submit();
+        }
     });
 
     //fix select2 input issue on modal

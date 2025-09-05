@@ -883,6 +883,15 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->segment(1) == 'types-of-service']
                             );
                         }
+
+                        // BIR Receipt Plugin Menu Item
+                        if (auth()->user()->can('sell.view')) {
+                            $sub->url(
+                                route('bir-receipt.index'),
+                                'BIR Receipt Plugin',
+                                ['icon' => '', 'active' => request()->segment(1) == 'bir-receipt']
+                            );
+                        }
                     },
                     ['icon' => '<svg aria-hidden="true" class="tw-size-5 tw-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>

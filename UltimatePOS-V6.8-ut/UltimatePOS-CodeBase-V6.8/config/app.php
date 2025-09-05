@@ -192,6 +192,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Providers\ModuleAssetServiceProvider::class,
+        App\Providers\BIRReceiptServiceProvider::class,
 
         /*
          * Module Service Providers...

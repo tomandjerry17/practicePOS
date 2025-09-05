@@ -536,3 +536,6 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone'])
     Route::get('/show-notification/{id}', [HomeController::class, 'showNotification']);
     Route::post('/sell/check-invoice-number', [SellController::class, 'checkInvoiceNumber']);
 });
+
+// BIR Receipt Plugin Routes
+require_once base_path('Modules/BIRReceiptPlugin/Routes/web.php');
